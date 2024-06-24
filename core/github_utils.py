@@ -26,7 +26,11 @@ def git_fetch_pr_details(pr):
         'created_at': pr.created_at,
         'updated_at': pr.updated_at,
         'comments': [comment.body for comment in pr.get_issue_comments()],
-        'files': [file.filename for file in pr.get_files()],
+        'files': [{
+            'filename': file.filename,
+            'patch': file.patch,
+            'blob_url': file.blob_url
+        } for file in pr.get_files()],
         'changes': [file.patch for file in pr.get_files() if file.patch],
         'reviewers': [reviewer.login for reviewer in pr.get_review_requests()[0]],
         'latest_commit': pr.get_commits().reversed[0].sha,
@@ -115,6 +119,13 @@ def check_pr_updates(token: str, repo_url: str) -> List[Dict[str, Any]]:
 
             if new_commit:
                 update_info['changes'] = pr_details['changes']
+                update_info['files'] = []
+                for file in pr.get_files():
+                    file_content = repo.get_contents(file.filename, ref=pr.head.sha)
+                    update_info['files'].append({
+                        'filename': file.filename,
+                        'content': file_content.decoded_content.decode('utf-8')
+                    })
 
             updates.append(update_info)
 
