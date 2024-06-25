@@ -134,4 +134,4 @@ def check_pr_updates(token: str, repo_url: str) -> List[Dict[str, Any]]:
                 'comments_count': len(comments_list)
             }
 
-    return updates
+    return pr_state, updates
