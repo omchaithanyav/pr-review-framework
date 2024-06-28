@@ -13,7 +13,6 @@ class Nodes:
         # pr_state = state.get("pr_state", {})
         # pr_details = state.get("pr_details", [])
         pr_state, pr_details = check_pr_updates(GIT_TOKEN, REPO)
-        llm_response = invoke_llm(pr_review_agent_prompt.format(pr_details))
         # TODO: We can iterate through every PR (pr_details) and pass it to llm for deciding the actions on every PR and store it in a list, then return the list to update state.
 
     def execute_action_on_prs(self, state):
