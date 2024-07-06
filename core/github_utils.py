@@ -35,7 +35,7 @@ def git_fetch_pr_details(pr):
         'reviewers': [reviewer.login for reviewer in pr.get_review_requests()[0]],
         'latest_commit': pr.get_commits().reversed[0].sha,
         'mergeable': pr.mergeable,
-        'mergeable_state': pr.mergeable_state,
+        # 'mergeable_state': pr.mergeable_state,
         'merged': pr.merged,
         'state': pr.state
     }
@@ -84,7 +84,20 @@ def git_merge_pr(pr):
         return f"PR #{pr.number} cannot be merged due to conflicts or other issues."
 
 
-def check_pr_updates(token: str, repo_url: str) -> List[Dict[str, Any]]:
+def git_is_pr_approved(pr, username):
+    reviews = pr.get_reviews()
+    latest_commit = pr.get_commits().reversed[0]
+    latest_commit_time = latest_commit.commit.committer.date
+
+    for review in reviews:
+        if review.state == 'APPROVED' and review.user.login == username:
+            if review.submitted_at > latest_commit_time:
+                return True
+    return False
+
+
+
+def check_pr_updates(token: str, repo_url: str, username: str) -> List[Dict[str, Any]]:
     global pr_state
 
     github = git_authenticate(token)
@@ -96,6 +109,8 @@ def check_pr_updates(token: str, repo_url: str) -> List[Dict[str, Any]]:
         pr_details = git_fetch_pr_details(pr)
         if pr_details['state'] == "open":
             pr_number = pr_details['number']
+            pr_desc = pr_details["body"]
+            pr_title = pr_details["title"]
 
             prev_state = pr_state.get(str(pr_number), {})
             prev_commit_sha = prev_state.get('latest_commit', None)
@@ -109,10 +124,13 @@ def check_pr_updates(token: str, repo_url: str) -> List[Dict[str, Any]]:
 
             update_info = {
                 'pr_number': pr_number,
-                'new_commit': new_commit,
-                'new_comments': new_comments_text,
+                'pr_title': pr_title,
+                'pr_description': pr_desc,
+                'approved': git_is_pr_approved(pr, username),
+                'recent_commit': new_commit,
+                'recent_comments': new_comments_text,
                 'mergeable': pr_details['mergeable'],
-                'mergeable_state': pr_details['mergeable_state'],
+                # 'mergeable_state': pr_details['mergeable_state'],
                 'merged': pr_details['merged'],
                 'state': pr_details['state']
             }

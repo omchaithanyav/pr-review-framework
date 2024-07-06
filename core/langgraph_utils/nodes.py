@@ -1,7 +1,7 @@
 from core.common_utils import invoke_llm
-from core.constants import GIT_TOKEN, REPO
+from core.constants import *
 from core.github_utils import check_pr_updates
-from core.prompts import pr_review_agent_prompt, pr_action_agent_prompt
+from core.prompts import initial_node_system_prompt, initial_node_user_prompt
 
 
 class Nodes:
@@ -9,14 +9,23 @@ class Nodes:
     def __init__(self):
         pass
 
-    def review_prs(self, state):
+    def determine_pr_action(self, state):
         # pr_state = state.get("pr_state", {})
         # pr_details = state.get("pr_details", [])
-        pr_state, pr_details = check_pr_updates(GIT_TOKEN, REPO)
-        # TODO: We can iterate through every PR (pr_details) and pass it to llm for deciding the actions on every PR and store it in a list, then return the list to update state.
+        pr_state, pr_details = check_pr_updates(GIT_TOKEN, REPO, AGENT_GIT_USERNAME)
+        action_required_prs = []
+        for pr in pr_details:
+            response = invoke_llm(system_prompt=initial_node_system_prompt,
+                                  user_prompt=initial_node_user_prompt.format(pr))
+            # ToDo From response we need to extract pr_number and action_required
 
-    def execute_action_on_prs(self, state):
-        pass
+        return {
+            **state,
+            "pr_state": pr_state,
+            "pr_details": pr_details,
+            # "action_required_prs": action_required_prs, # [{pr_number: <pr_num>, action_required: action, approved: boolean}]
+        }
+        # pr_state: dict
+        # pr_details: list[dict]
+        # action_required_prs: dict  # {pr_number: <pr_num>, action_required: action, approved: boolean}
 
-
-# TODO:  Based on actions required - the specific tool/node will be called - for example we will have one tool (custom) for approving pr, one for commenting on pr, one for merging, etc.
